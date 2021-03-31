@@ -46,41 +46,115 @@ import time
 from copy import deepcopy
 
 
-def diap_count(number, diap):
-    if number >= (diap * 10) and number <= ((diap + 1) * 10):
-        if number >= 80:
-            return True
-        elif number < ((diap + 1) * 10):
-            return True
+def loto_generator():
+    list_numbers = []
+    for i in range(1, 90):
+        list_numbers.append(i)
+    while True:
+        number = random.randint(0, len(list_numbers) - 1)
+        res = list_numbers[number]
+        list_numbers.remove(res)
+        yield res
+
+
+def number_in_card(num, in_list):
+    result = [False, 0, 0]
+    for i, el_l in enumerate(in_list):
+        for j, el in enumerate(el_l):
+            if el == num:
+                result[0] = True
+                result[1] = i
+                result[2] = j
+    return result
+
+
+class LotoCard:
+    def __init__(self, name):
+        self.__pc_name = ['PC', 'Компьютер', 'Комп', 'Computer', 'Comp']
+        self.__main_line = [[' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']]
+        self.type = 0
+        if self.__pc_name.count(name) > 0:
+            self.type = 1
+        self.card = self.__list_filling(self.__main_line)
+        self.counter = 0
+
+    @staticmethod
+    def __list_filling(in_line):
+        main_line = deepcopy(in_line)
+        gen_obj = loto_generator()
+        for i in range(3):
+            counter = 0
+            for number in gen_obj:
+                if main_line[i][8 if number >= 80 else number // 10] != ' ':
+                    continue
+                main_line[i][8 if number >= 80 else number // 10] = number
+                counter += 1
+                if counter > 4:
+                    break
+        return main_line
+
+class LotoGame:
+    def __init__(self, player1, player2):
+        if player1.type == 1:
+            self.p2 = player1
+            self.p1 = player2
         else:
-            return False
-    else:
-        return False
+            self.p1 = player1
+            self.p2 = player2
 
-
-def list_filling(in_line):
-    main_line = deepcopy(in_line)
-    for i in range(3):
-        counter = 0
-        while True:
-            a = random.randint(0, 8)
-            b = random.randint(1, 90)
-            if diap_count(b, a):
-                if main_line[i][a] == ' ' and main_line.count(b) == 0:
-                    main_line[i][a] = b
-                    counter += 1
-            if counter >= 5:
+    def start(self):
+        counter_cub = 90
+        gen_obj = loto_generator()
+        for number in gen_obj:
+            counter_cub -= 1
+            if counter_cub > 89:
                 break
-    return main_line
+            print(f'Новый бочонок: {number} (осталось {counter_cub})')
+            print('---------- Ваша карточка ---------')
+            print('\n'.join('\t'.join(map(str, row)) for row in self.p1.card))
+            print('----------------------------------')
+            print('------ Карточка компьютера -------')
+            print('\n'.join('\t'.join(map(str, row)) for row in self.p2.card))
+            print('----------------------------------')
+            answer = input('Зачеркнуть цифру? (y/n) \n')
+            res_ans = number_in_card(number, self.p1.card)
+            if answer == 'y':
+                if res_ans[0]:
+                    self.p1.card[res_ans[1]][res_ans[2]] = '-'
+                    self.p1.counter += 1
+                else:
+                    print('Вы проиграли!')
+                    break
+            if answer == 'n':
+                if res_ans[0]:
+                    print('Вы проиграли!')
+                    break
+            res_ans = number_in_card(number, self.p2.card)
+            if res_ans[0]:
+                self.p2.card[res_ans[1]][res_ans[2]] = '-'
+                self.p2.counter += 1
+
+            if self.p1.counter > 14 or self.p2.counter > 14:
+                break
+        if self.p1.counter > 14:
+            print('Игрок выиграл!!! \n')
+        if self.p2.counter > 14:
+            print('Компьютер выиграл!!! \n')
+
+        # print('---------- Ваша карточка ---------')
+        # print('\n'.join('\t'.join(map(str, row)) for row in self.p1.card))
+        # print('----------------------------------')
+        # print('------ Карточка компьютера -------')
+        # print('\n'.join('\t'.join(map(str, row)) for row in self.p2.card))
+        # print('----------------------------------')
 
 
-# class LotoCard:
-#     def __init__(self):
-#         self.main_line = ['-', '-', '-', '-', '-', '-', '-', '-', '-']
-#         self.card = [[]]
-main_line = [[' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '], [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-             [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']]
 
-main_line = list_filling(main_line)
-
-print('\n'.join('\t'.join(map(str, row)) for row in main_line))
+gamer = LotoCard('Игрок')
+pc = LotoCard('PC')
+game = LotoGame(gamer, pc)
+game.start()
+# #
+# print('\n'.join('\t'.join(map(str, row)) for row in gamer.card))
